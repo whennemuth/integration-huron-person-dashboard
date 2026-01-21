@@ -1,0 +1,17 @@
+# Auto-generated template constants
+src/handlers/TemplateConstants.ts
+
+# TypeScript build artifacts
+dist/
+dist/*
+*.js
+!jest.config.js
+*.d.ts
+node_modules
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out
+
+# Exclude the auto-generated Node.js compilation cache directory
+.vscode/compile-cache/*

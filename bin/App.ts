@@ -1,0 +1,52 @@
+#!/usr/bin/env node
+import * as cdk from 'aws-cdk-lib/core';
+import { OriginType, ShibbolethAtEdgeConstruct } from 'shibboleth-sp-at-edge';
+import { AuthenticationMode, IContext } from '../context/IContext';
+import { AuthenticatedStack, PublicStack } from '../lib/Stack';
+import { StaticWebsiteBucket } from '../lib/StaticWebsiteBucket';
+
+const app = new cdk.App();
+const context = require('../context/context.json') as IContext;
+const { AUTHENTICATION_MODE, REGION: region, STACK_ID: stackName, ACCOUNT: account, TAGS: {
+  Landscape, CostCenter='', Ticket='', Service, Function
+} } = context;
+const { AUTHENTICATED, PUBLIC } = AuthenticationMode;
+
+(async () => {
+
+  const stackProps = {
+    stackName,
+    description: 'Lambda-based integration for exporting BU person data to Huron via API',
+    env: { account, region },
+    tags: { Landscape, CostCenter, Ticket, Service, Function },
+  } satisfies cdk.StackProps;
+
+  if(AUTHENTICATION_MODE === AUTHENTICATED) {
+    const dashboardApp = new AuthenticatedStack({ scope: app, stackName, context, stackProps });
+
+    context.ORIGIN = dashboardApp.modifiedContextOrigin;
+
+    const shibSpConstruct = await ShibbolethAtEdgeConstruct.getInstance({
+      scope: dashboardApp, 
+      id: 'shibboleth-sp-at-edge', 
+      context
+    });
+
+    shibSpConstruct.cloudfrontDistribution.distribution
+  } 
+  else if(AUTHENTICATION_MODE === PUBLIC) {
+    // Public Stack - no Shibboleth authentication
+    if( ! context.ORIGIN) {
+      context.ORIGIN = {
+        originType: OriginType.FUNCTION_URL,
+        httpsPort: 443,
+        appAuthorization: false, // Does not apply, but required field
+      };
+    }
+    const dashboardApp = new PublicStack({ 
+      scope: app, stackName: `${stackName}-public`, context, stackProps 
+    });
+  }
+
+})();
+

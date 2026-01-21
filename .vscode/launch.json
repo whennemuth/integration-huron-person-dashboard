@@ -1,0 +1,51 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "CDK Debugger (App)",
+      "skipFiles": ["<node_internals>/**"],
+      "runtimeArgs": ["-r", "${workspaceFolder}/node_modules/ts-node/register/transpile-only"],
+      "args": ["${workspaceFolder}/bin/App.ts"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug mocked with Hot Reload",
+      "program": "${workspaceFolder}/node_modules/nodemon/bin/nodemon.js",
+      "args": [
+        "--exec", "ts-node",
+        "--transpile-only",
+        "${workspaceFolder}/src/LocalServer.ts"
+      ],
+      "console": "integratedTerminal",
+      "restart": false,
+      "env": {
+        "LOCALHOST_WITH_MOCKS": "true",
+        "NODE_COMPILE_CACHE": ".vscode/compile-cache"
+      },
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug mocked with Hot Reload (as if Lambda)",
+      "program": "${workspaceFolder}/node_modules/nodemon/bin/nodemon.js",
+      "args": [
+        "--exec", "ts-node",
+        "--transpile-only",
+        "${workspaceFolder}/src/LocalServer.ts"
+      ],
+      "console": "integratedTerminal",
+      "restart": false,
+      "env": {
+        "LOCALHOST_WITH_MOCKS": "true",
+        "AWS_LAMBDA_FUNCTION_NAME": "local-dashboard",
+        "NODE_COMPILE_CACHE": ".vscode/compile-cache"
+      },
+      "envFile": "${workspaceFolder}/.env"
+    }
+
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "STACK_ID": "kuali-to-huron-person-integration-dashboard",
+  "ACCOUNT": "770203350335",
+  "REGION": "us-east-2",
+  "AUTHENTICATION_MODE": "public",
+  "TAGS": {
+    "Service": "research-administration",
+    "Function": "kuali",
+    "Landscape": "dev",
+    "CostCenter": "AWS Kuali",
+    "Ticket": "PRJ2017653"
+  }
+}
