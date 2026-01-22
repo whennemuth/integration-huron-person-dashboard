@@ -13,5 +13,8 @@ node_modules
 .cdk.staging
 cdk.out
 
+# CDK context cache
+cdk.context.json
+
 # Exclude the auto-generated Node.js compilation cache directory
 .vscode/compile-cache/*
