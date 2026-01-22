@@ -12,7 +12,8 @@ type CoreInfrastructureProperties = Pick<
   'ORIGIN' |
   'DNS'
 > & {
-  lambdaTimeoutSeconds?: number; 
+  LAMBDA_TIMEOUT_SECONDS?: number;
+  LAMBDA_MEMORY_SIZE_MB?: number; 
 };
 
 export enum AuthenticationMode {
@@ -31,7 +32,7 @@ export type IContext =
 /**
  * Authenticated deployment context - includes all ShibSpContext properties
  */
-export type AuthenticatedContext = ShibSpContext & {
+export type AuthenticatedContext = CoreInfrastructureProperties & ShibSpContext & {
   AUTHENTICATION_MODE: AuthenticationMode.AUTHENTICATED;
 };
 

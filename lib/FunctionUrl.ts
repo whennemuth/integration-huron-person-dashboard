@@ -19,7 +19,9 @@ export class FunctionUrlOrigin {
       ORIGIN: { appAuthorization=true } = {}, 
       STACK_ID, 
       TAGS,
-      AUTHENTICATION_MODE
+      AUTHENTICATION_MODE,
+      LAMBDA_TIMEOUT_SECONDS,
+      LAMBDA_MEMORY_SIZE_MB,
     } = this.context;
 
     const functionName = `${STACK_ID}-${TAGS.Landscape}-app-function`;
@@ -37,8 +39,9 @@ export class FunctionUrlOrigin {
     // Simple lambda-based web app
     this.lambda = new NodejsFunction(this.stack, 'AppFunction', {
       runtime: Runtime.NODEJS_LATEST,
+      memorySize: LAMBDA_MEMORY_SIZE_MB ?? 512,
       entry: 'src/handlers/DashboardHandler.ts',
-      timeout: Duration.seconds(10),
+      timeout: Duration.seconds(LAMBDA_TIMEOUT_SECONDS ?? 10),
       functionName,
       environment: {
         'ORIGIN_VERIFY_SECRET': this.originVerifySecret,
