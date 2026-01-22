@@ -14,7 +14,8 @@
     "publish-dev": "sh ./bin/publish-to-bucket.sh",
     "dev": "npm run build && ts-node src/LocalServer.ts",
     "dev:watch": "npm run build:templates && nodemon --exec ts-node --transpile-only src/LocalServer.ts",
-    "synth": "npm run build:templates && cdk synth 2>&1 | tee cdk.out/synth.output.yaml",
+    "get-stack-name": "ts-node -e \"require('./src/Utils.ts').echoStackName()\"",
+    "synth": "npm run get-stack-name | xargs cdk synth 2>&1 | tee cdk.out/synth.output.yaml",
     "deploy": "npm run build:templates && cdk deploy --all --no-rollback --require-approval never",
     "redeploy": "cdk destroy --all -f && npm run deploy --all",
     "teardown": "cdk destroy -f"
