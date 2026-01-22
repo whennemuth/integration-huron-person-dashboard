@@ -2,7 +2,9 @@ import Mustache from 'mustache';
 import { LambdaFunctionUrlEvent, LambdaFunctionUrlResult } from './DashboardTypes';
 import { TemplateService } from '../services/TemplateService';
 import { ServiceProvider } from '../services/ServiceProvider';
-import { verifyOriginHeader } from './OriginVerification';
+import { OriginHeader } from './OriginVerification';
+import { Request } from '../services/Request';
+import { Authenticator } from '../services/Authentication';
 // import { SinglePersonSync } from 'integration-huron-person';
 // import { ConfigManager } from 'integration-huron-person';
 
@@ -14,21 +16,53 @@ export const handler = async (event: LambdaFunctionUrlEvent): Promise<LambdaFunc
   console.log('Dashboard handler invoked:', JSON.stringify(event, null, 2));
   
   try {
+    // Get request object to handle auth and origin verification
+    const request = new Request(new Authenticator(event), new OriginHeader(event));
+    const {path, body, queryParams } = request;
+
     // Verify origin header to ensure request came from CloudFront
-    const originVerification = verifyOriginHeader(event);
-    if (!originVerification.isValid && originVerification.errorResponse) {
-      return originVerification.errorResponse;
+    if ( ! request.originVerified) {
+      console.log('Request origin verification failed. Returning error response.');
+      return request.getOriginVerifiedErrorResponse()!;
     }
 
-    const path = event.rawPath || event.requestContext?.http?.path || '/';
-    const method = event.requestContext?.http?.method || 'GET';
-    const body = event.body ? (event.isBase64Encoded ? Buffer.from(event.body, 'base64').toString() : event.body) : null;
-    const queryParams = event.queryStringParameters || {};
-
+    // Verify authentication if required
+    if ( ! request.isAuthenticated && path.startsWith('/api/')) {
+      return createResponse(400, 'application/json', JSON.stringify({ 
+        error: 'Request is not authenticated. Requires valid JWT token.' 
+      }));
+    }
+   
     // Route handling
     switch (path) {
       case '/': case '/dashboard':
+        if ( ! request.isAuthenticated) {
+          console.log('Request is not authenticated. Returning login response.');
+          return { statusCode: 302, headers: {
+            ["content-type"]: "text/html",
+            Location: '/login-page'
+          }}
+
+        }
         return await renderDashboard(queryParams.tab);
+
+      case '/login-page':
+        if(request.isAuthenticated) {
+          return { statusCode: 302, headers: {
+            ["content-type"]: "text/html",
+            Location: '/dashboard'
+          }}
+        }
+        return await renderLoginPage();
+
+      case '/login-redirect':
+        if(request.isAuthenticated) {
+          return { statusCode: 302, headers: {
+            ["content-type"]: "text/html",
+            Location: '/dashboard'
+          }}
+        }
+        return request.getLoginResponse();
       
       case '/api/person-lookup':
         return await handlePersonLookup(body);
@@ -90,6 +124,25 @@ async function renderDashboard(activeTab?: string): Promise<LambdaFunctionUrlRes
   } catch (error) {
     console.error('Error rendering dashboard:', error);
     return createResponse(500, 'text/html', '<h1>Error Loading Dashboard</h1>');
+  }
+}
+
+async function renderLoginPage(): Promise<LambdaFunctionUrlResult> {
+  try {
+    const template = TemplateService.getLoginTemplate();
+    const cssAssets = TemplateService.getCssAssets();
+    
+    const data = {
+      title: 'Integration Dashboard - Boston University Person → Huron',
+      currentTime: new Date().toISOString(),
+      cssAssets
+    };
+    
+    const html = Mustache.render(template, data);
+    return createResponse(200, 'text/html', html);
+  } catch (error) {
+    console.error('Error rendering login page:', error);
+    return createResponse(500, 'text/html', '<h1>Error Loading Login Page</h1>');
   }
 }
 

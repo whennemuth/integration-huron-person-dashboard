@@ -46,7 +46,7 @@ export class PublicStack extends AbstractStack {
     // Create the distribution with the function URL as origin
     this._distribution = new CloudFrontDistribution({
       scope: this, 
-      id: 'cloudfront-distribution', 
+      id: 'distribution', 
       context: stackParams.context, 
       functionUrlOrigin: this._functionUrlOrigin
     });
@@ -72,7 +72,10 @@ export class AuthenticatedStack extends AbstractStack {
     let origin: OriginFunctionUrl;
 
     if(ORIGIN) {
-      origin = ORIGIN as OriginFunctionUrl;
+      origin = {
+        ...(ORIGIN as OriginFunctionUrl),
+        url
+      }
     }
     else {
       origin = {

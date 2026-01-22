@@ -23,6 +23,18 @@ export class TemplateService {
   }
 
   /**
+   * Get the login page template
+   */
+  static getLoginTemplate(): string {
+    if (this.isLambdaEnvironment()) {
+      return require('../handlers/TemplateConstants').LOGIN_TEMPLATE;
+    } else {
+      const templatePath = join(__dirname, '../../templates/login.mustache');
+      return readFileSync(templatePath, 'utf-8');
+    }
+  }
+
+  /**
    * Get all template partials
    */
   static getPartials(): Record<string, string> {

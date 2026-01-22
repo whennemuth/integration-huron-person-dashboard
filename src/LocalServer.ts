@@ -115,7 +115,7 @@ app.all('*', async (req, res) => {
     const contentTypeStr = typeof contentType === 'string' ? contentType : '';
     if (contentTypeStr.includes('application/json')) {
       try {
-        const jsonBody = JSON.parse(result.body);
+        const jsonBody = JSON.parse(result.body || '{}');
         res.json(jsonBody);
       } catch {
         res.send(result.body);

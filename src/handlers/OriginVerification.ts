@@ -10,100 +10,112 @@ export interface OriginVerificationResult {
 }
 
 /**
- * Validates that a request originated from CloudFront by checking the origin verification header
+ * Class for verifying origin headers from CloudFront requests
  */
-export function verifyOriginHeader(event: LambdaFunctionUrlEvent): OriginVerificationResult {
-  const expectedSecret = process.env.ORIGIN_VERIFY_SECRET;
+export class OriginHeader {
+  private verificationResult: OriginVerificationResult;
 
-  const isLambdaEnvironment = (): boolean => {
-    return !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+  constructor(private _event: LambdaFunctionUrlEvent) {
+    this.verificationResult = this.computeVerification();
   }
 
-  if ( ! isLambdaEnvironment()) {
-    // If not Lambda environment, skip verification (might be running locally or in a test environment).
+  /**
+   * Returns true if the origin header is verified, false otherwise
+   */
+  public isVerified(): boolean {
+    return this.verificationResult.isValid;
+  }
+
+  /**
+   * Returns the full verification result
+   */
+  public getVerificationResult(): OriginVerificationResult {
+    return this.verificationResult;
+  }
+
+  /**
+   * Computes the verification result based on the event
+   */
+  private computeVerification(): OriginVerificationResult {
+    const expectedSecret = process.env.ORIGIN_VERIFY_SECRET;
+
+    const isLambdaEnvironment = (): boolean => {
+      return !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+    }
+
+    if (!isLambdaEnvironment()) {
+      // If not Lambda environment, skip verification (might be running locally or in a test environment).
+      return { isValid: true };
+    }
+
+    if (!expectedSecret) {
+      console.error('ORIGIN_VERIFY_SECRET environment variable not set');
+      return {
+        isValid: false,
+        errorResponse: {
+          statusCode: 500,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            error: 'Server configuration error',
+            message: 'Origin verification not configured'
+          }),
+        }
+      };
+    }
+
+    const originVerifyHeader = this._event.headers['X-Origin-Verify'] || this._event.headers['x-origin-verify'];
+
+    if (!originVerifyHeader) {
+      console.warn('Request blocked: Missing X-Origin-Verify header', {
+        sourceIp: this._event.requestContext?.http?.sourceIp,
+        userAgent: this._event.headers['User-Agent'] || 'Unknown',
+        path: this._event.rawPath
+      });
+
+      return {
+        isValid: false,
+        errorResponse: {
+          statusCode: 403,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            error: 'Access Denied',
+            message: 'Direct access not allowed'
+          }),
+        }
+      };
+    }
+
+    if (originVerifyHeader !== expectedSecret) {
+      console.warn('Request blocked: Invalid X-Origin-Verify header', {
+        sourceIp: this._event.requestContext?.http?.sourceIp,
+        userAgent: this._event.headers['User-Agent'] || 'Unknown',
+        path: this._event.rawPath,
+        headerValue: originVerifyHeader.substring(0, 10) + '...' // Log partial value for debugging
+      });
+
+      return {
+        isValid: false,
+        errorResponse: {
+          statusCode: 403,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            error: 'Access Denied',
+            message: 'Invalid origin verification'
+          }),
+        }
+      };
+    }
+
     return { isValid: true };
   }
-  
-  if (!expectedSecret) {
-    console.error('ORIGIN_VERIFY_SECRET environment variable not set');
-    return {
-      isValid: false,
-      errorResponse: {
-        statusCode: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          error: 'Server configuration error',
-          message: 'Origin verification not configured'
-        }),
-      }
-    };
+
+  public get event(): LambdaFunctionUrlEvent {
+    return this._event;
   }
-
-  const originVerifyHeader = event.headers['X-Origin-Verify'] || event.headers['x-origin-verify'];
-  
-  if (!originVerifyHeader) {
-    console.warn('Request blocked: Missing X-Origin-Verify header', {
-      sourceIp: event.requestContext?.http?.sourceIp,
-      userAgent: event.headers['User-Agent'] || 'Unknown',
-      path: event.rawPath
-    });
-    
-    return {
-      isValid: false,
-      errorResponse: {
-        statusCode: 403,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          error: 'Access Denied',
-          message: 'Direct access not allowed'
-        }),
-      }
-    };
-  }
-
-  if (originVerifyHeader !== expectedSecret) {
-    console.warn('Request blocked: Invalid X-Origin-Verify header', {
-      sourceIp: event.requestContext?.http?.sourceIp,
-      userAgent: event.headers['User-Agent'] || 'Unknown',
-      path: event.rawPath,
-      headerValue: originVerifyHeader.substring(0, 10) + '...' // Log partial value for debugging
-    });
-    
-    return {
-      isValid: false,
-      errorResponse: {
-        statusCode: 403,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          error: 'Access Denied',
-          message: 'Invalid origin verification'
-        }),
-      }
-    };
-  }
-
-  return { isValid: true };
-}
-
-/**
- * Middleware wrapper that applies origin verification to any handler
- */
-export function withOriginVerification(
-  handler: (event: LambdaFunctionUrlEvent) => Promise<LambdaFunctionUrlResult>
-) {
-  return async (event: LambdaFunctionUrlEvent): Promise<LambdaFunctionUrlResult> => {
-    const verification = verifyOriginHeader(event);
-    
-    if (!verification.isValid && verification.errorResponse) {
-      return verification.errorResponse;
-    }
-    
-    return handler(event);
-  };
 }

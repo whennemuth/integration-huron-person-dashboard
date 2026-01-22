@@ -32,6 +32,6 @@ export type LambdaFunctionUrlEvent = {
 export type LambdaFunctionUrlResult = {
   statusCode: number;
   headers?: { [header: string]: boolean | number | string };
-  body: string;
+  body?: string;
   isBase64Encoded?: boolean;
 }

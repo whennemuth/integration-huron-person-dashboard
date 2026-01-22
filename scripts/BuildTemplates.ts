@@ -18,12 +18,14 @@ interface TemplateMetadata {
   minified: boolean;
   originalSize: {
     dashboard: number;
+    login: number;
     partials: Record<string, number>;
     css: Record<string, number>;
     js: Record<string, number>;
   };
   minifiedSize: {
     dashboard: number;
+    login: number;
     partials: Record<string, number>;
     css: Record<string, number>;
     js: Record<string, number>;
@@ -111,7 +113,13 @@ const minificationOptions = {
   removeRedundantAttributes: true,
   removeScriptTypeAttributes: true,
   removeStyleLinkTypeAttributes: true,
-  minifyCSS: true,
+  /**
+   * Disabled CSS minification to prevent interference with Mustache expressions in 
+   * <style> tags. The css minifier in the HTMLMinifier-terser package does not
+   * recognize template syntax and may corrupt the content. The JS minification
+   * is safe to use as it does not affect template expressions.
+   */
+  minifyCSS: false,
   minifyJS: true,
   // Preserve mustache expressions and important whitespace
   ignoreCustomFragments: [
@@ -167,6 +175,11 @@ async function generateTemplateConstants(): Promise<void> {
   const dashboardOriginal = fs.readFileSync(dashboardPath, 'utf-8');
   const dashboardResult = await minifyTemplate(dashboardOriginal);
 
+  // Read and minify main login template
+  const loginPath = path.join(templatesDir, 'login.mustache');
+  const loginOriginal = fs.readFileSync(loginPath, 'utf-8');
+  const loginResult = await minifyTemplate(loginOriginal);
+
   // Read and minify partials
   const partials: Record<string, MinificationResult> = {};
   const partialFiles = ['individual-tab.mustache', 'bulk-tab.mustache', 'history-tab.mustache', 'system-tab.mustache'];
@@ -194,6 +207,7 @@ async function generateTemplateConstants(): Promise<void> {
     minified: true,
     originalSize: {
       dashboard: dashboardOriginal.length,
+      login: loginOriginal.length,
       partials: Object.fromEntries(
         Object.entries(partials).map(([name, result]) => [name, result.original.length])
       ),
@@ -206,6 +220,7 @@ async function generateTemplateConstants(): Promise<void> {
     },
     minifiedSize: {
       dashboard: dashboardResult.minified.length,
+      login: loginResult.minified.length,
       partials: Object.fromEntries(
         Object.entries(partials).map(([name, result]) => [name, result.minified.length])
       ),
@@ -228,6 +243,8 @@ async function generateTemplateConstants(): Promise<void> {
  */
 
 export const DASHBOARD_TEMPLATE = \`${escapeForTypeScript(dashboardResult.minified)}\`;
+
+export const LOGIN_TEMPLATE = \`${escapeForTypeScript(loginResult.minified)}\`;
 
 export const TEMPLATE_PARTIALS: Record<string, string> = {${
     Object.entries(partials)
@@ -258,12 +275,14 @@ export interface TemplateMetadata {
   minified: boolean;
   originalSize: {
     dashboard: number;
+    login: number;
     partials: Record<string, number>;
     css: Record<string, number>;
     js: Record<string, number>;
   };
   minifiedSize: {
     dashboard: number;
+    login: number;
     partials: Record<string, number>;
     css: Record<string, number>;
     js: Record<string, number>;
@@ -277,6 +296,7 @@ export interface TemplateMetadata {
   // Log compression statistics
   console.log('✅ Template constants generated successfully!');
   console.log(`📄 Dashboard template: ${dashboardOriginal.length} → ${dashboardResult.minified.length} bytes (${dashboardResult.compressionRatio.toFixed(1)}% reduction)`);
+  console.log(`📄 Login template: ${loginOriginal.length} → ${loginResult.minified.length} bytes (${loginResult.compressionRatio.toFixed(1)}% reduction)`);
   
   const totalOriginalPartials = Object.values(partials).reduce((sum, result) => sum + result.original.length, 0);
   const totalMinifiedPartials = Object.values(partials).reduce((sum, result) => sum + result.minified.length, 0);

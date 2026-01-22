@@ -52,7 +52,7 @@ export class CloudFrontDistribution extends Construct {
     // Configure distribution properties
     let distributionProps = {
       priceClass: PriceClass.PRICE_CLASS_100,
-      logBucket: new Bucket(scope, `${distributionName}-logs-bucket`, {
+      logBucket: new Bucket(scope, `distribution-logs-bucket`, {
         removalPolicy: RemovalPolicy.DESTROY,    
         autoDeleteObjects: true,
         objectOwnership: ObjectOwnership.OBJECT_WRITER
