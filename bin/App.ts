@@ -4,6 +4,10 @@ import { OriginType, ShibbolethAtEdgeConstruct } from 'shibboleth-sp-at-edge';
 import { AuthenticationMode, IContext } from '../context/IContext';
 import { AuthenticatedStack, PublicStack } from '../lib/Stack';
 import { getStackName } from '../src/Utils';
+import * as dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 const app = new cdk.App();
 const context = require('../context/context.json') as IContext;

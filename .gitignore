@@ -18,3 +18,7 @@ cdk.context.json
 
 # Exclude the auto-generated Node.js compilation cache directory
 .vscode/compile-cache/*
+
+# exclude environment files
+.env
+.env.*

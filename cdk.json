@@ -1,5 +1,8 @@
 {
   "app": "npx ts-node --prefer-ts-exts bin/App.ts",
+  "env": {
+    "file": ".env"
+  },
   "watch": {
     "include": [
       "**"
