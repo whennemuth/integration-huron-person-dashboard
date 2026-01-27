@@ -29,13 +29,53 @@
       "jwtPublicKeySecretFld": "wp-jwt-pubkey"
     }
   },
+  "LAMBDA_TIMEOUT_SECONDS": 30,
+  "LAMBDA_MEMORY_SIZE_MB": 1024,
+  "INTEGRATION_CONFIG": {
+    "dataSource": {
+      "endpointConfig": {
+        "baseUrl": "https://prod-budev-fm.snaplogic.io",
+        "apiKey": "your-api-key-here",
+        "timeout": 300000
+      },
+      "fetchPersonsPath": "/api/1/rest/feed-master/queue/BUDev/Admin-Integration-Services/CommonServiceWrappers/huronIRBPerson",
+      "fieldsToKeep": [
+        "personid",
+        "personBasic.names[*].firstName",
+        "personBasic.names[*].lastName",
+        "personBasic.names[*].middleName"
+      ]
+    },
+    "dataTarget": {
+      "endpointConfig": {
+        "baseUrl": "https://bu.hrs-staging.com",
+        "authMethod": "externalToken",
+        "externalToken": "your-external-token-here",
+        "userId": "bu-sso_wrh@bu.edu",
+        "loginSvcPath": "/loginsvc/api/v1/token/",
+        "timeout": 30000
+      },
+      "personsPath": "/api/v2/persons"
+    },
+    "integration": {
+      "clientId": "huron-person-integration",
+      "batchSize": 100,
+      "timeout": 30000
+    },
+    "storage": {
+      "type": "s3",
+      "config": {
+        "bucketName": "your-bucket-name-here",
+        "keyPrefix": "optional/key/prefix",
+        "region": "us-east-2"
+      }
+    }    
+  },
   "TAGS": {
     "Service": "research-administration",
     "Function": "kuali",
     "Landscape": "dev",
     "CostCenter": "AWS Kuali",
     "Ticket": "PRJ2017653"
-  },
-  "LAMBDA_TIMEOUT_SECONDS": 30,
-  "LAMBDA_MEMORY_SIZE_MB": 1024
+  }
 }

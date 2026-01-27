@@ -9,27 +9,29 @@ import {
   PersonSyncResult,
   BulkSyncResult,
   HistoryResult,
-  SystemStatusResult
+  SystemStatusResult,
+  PersonLookupParams
 } from '../services/ServiceTypes';
 
 export class MockPersonLookupService implements PersonLookupService {
-  async lookup(personId: string, system: 'source' | 'target'): Promise<PersonLookupResult> {
+  async lookup(params: PersonLookupParams): Promise<PersonLookupResult> {
+    const { personId='', system } = params;
     const buId = system === 'source' ? personId : 'U1234567';
     const hrn = system === 'target' ? personId : 'HRN123456';
     return {
       personId,
-      sourceData: {
+      sourceData: [{
         buId,
         name: 'John Doe',
         email: 'john.doe@example.com',
         department: 'Engineering',
         lastModified: new Date().toISOString()
-      },
-      targetData: {
+      }],
+      targetData: [{
         hrn,
         status: 'Active',
         lastSync: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-      }
+      }]
     };
   }
 }
@@ -131,7 +133,7 @@ export class MockConfigManager {
 export class MockPersonLookup {
   static lookup(personId: string, system: 'source' | 'target') {
     const service = new MockPersonLookupService();
-    return service.lookup(personId, system);
+    return service.lookup({ personId, system } as PersonLookupParams);
   }
 }
 

@@ -5,9 +5,10 @@ import { FunctionUrl, FunctionUrlAuthType, Runtime } from "aws-cdk-lib/aws-lambd
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { LogGroup } from "aws-cdk-lib/aws-logs";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
+import { PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
 import { AuthenticatedContext, AuthenticationMode, IContext } from "../context/IContext";
-import { env } from "process";
+import { SECRET_ARN, SECRET_REGION } from "../src/handlers/DashboardCache";
 
 export class FunctionUrlOrigin {
   private lambda: NodejsFunction;
@@ -15,21 +16,24 @@ export class FunctionUrlOrigin {
   private funcUrlOrigin: HttpOrigin;
   private originVerifySecret: string;
   
-  constructor(private stack: Construct, private context: IContext) {
-    const { 
+  constructor(private params: { stack: Construct, context: IContext, secretArn?: string }) {
+    const { stack, secretArn, context, context: { 
       STACK_ID, 
       TAGS,
+      REGION,
       AUTHENTICATION_MODE,
       LAMBDA_TIMEOUT_SECONDS,
       LAMBDA_MEMORY_SIZE_MB,
-    } = this.context;
+    } } = this.params;
 
     // Generate a secure random secret for origin verification
     this.originVerifySecret = `cf-origin-verify-${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}${Date.now().toString(36)}`;
 
     // Start with base environment variable(s)
     let environment = {
-      ORIGIN_VERIFY_SECRET: this.originVerifySecret
+      ORIGIN_VERIFY_SECRET: this.originVerifySecret,
+      [SECRET_ARN]: secretArn,
+      [SECRET_REGION]: REGION,
     } as any;
 
     // Add authentication-related environment variables if applicable
@@ -38,7 +42,7 @@ export class FunctionUrlOrigin {
         ORIGIN: { appAuthorization=true } = {}, 
         APP_LOGIN_HEADER, 
         APP_LOGOUT_HEADER
-      } = this.context as AuthenticatedContext;
+      } = context as AuthenticatedContext;
       const APP_AUTHORIZATION = appAuthorization;
       environment = {
         ...environment,
@@ -51,21 +55,21 @@ export class FunctionUrlOrigin {
     const functionName = `${STACK_ID}-${TAGS.Landscape}-app-function`;
     
     // Store secret in Systems Manager Parameter Store
-    new StringParameter(this.stack, 'secret', {
+    new StringParameter(stack, 'secret', {
       parameterName: `/cloudfront/${STACK_ID}/origin-verify-secret`,
       stringValue: this.originVerifySecret,
       description: 'Secret header value for CloudFront origin verification',
     });
 
     // Simple lambda-based web app
-    this.lambda = new NodejsFunction(this.stack, 'lambda', {
+    this.lambda = new NodejsFunction(stack, 'lambda', {
       runtime: Runtime.NODEJS_LATEST,
       memorySize: LAMBDA_MEMORY_SIZE_MB ?? 512,
       entry: 'src/handlers/DashboardHandler.ts',
       timeout: Duration.seconds(LAMBDA_TIMEOUT_SECONDS ?? 10),
       functionName,
       environment,
-      logGroup: new LogGroup(this.stack, `logs`, {
+      logGroup: new LogGroup(stack, `logs`, {
         logGroupName: `/aws/lambda/${functionName}`,
         removalPolicy: RemovalPolicy.DESTROY,
       }),
@@ -75,6 +79,15 @@ export class FunctionUrlOrigin {
         ]
       },
     });
+
+    // Add policy to allow reading from Secrets Manager secret
+    if (secretArn) {
+      this.lambda.addToRolePolicy(new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: ['secretsmanager:GetSecretValue'],
+        resources: [secretArn],
+      }));
+    }
 
     // Lambda function url for the web app.
     this.functionUrl = new FunctionUrl(this.lambda, 'url', {
@@ -95,7 +108,11 @@ export class FunctionUrlOrigin {
     if(AUTHENTICATION_MODE === AuthenticationMode.AUTHENTICATED) {
 
       // Authentication headers
-      const { APP_LOGIN_HEADER, APP_LOGOUT_HEADER, ORIGIN: { appAuthorization=true } = {} } = this.context as AuthenticatedContext;
+      const { 
+        APP_LOGIN_HEADER, 
+        APP_LOGOUT_HEADER, 
+        ORIGIN: { appAuthorization=true } = {} 
+      } = context as AuthenticatedContext;
       this.lambda.addEnvironment('APP_AUTHORIZATION', `${appAuthorization}`);
       this.lambda.addEnvironment('APP_LOGIN_HEADER', APP_LOGIN_HEADER);
       this.lambda.addEnvironment('APP_LOGOUT_HEADER', APP_LOGOUT_HEADER);

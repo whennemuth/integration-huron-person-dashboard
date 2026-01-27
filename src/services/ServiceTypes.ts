@@ -1,6 +1,13 @@
 // Service Interfaces
+export type PersonLookupParams = {
+  system: 'source' | 'target' | 'source-only' | 'target-only';
+  searchType: 'buid' | 'name' | 'email' | 'hrn' | 'sid' | 'uid';
+  personId: string;
+  firstName?: string;
+  lastName?: string;
+};
 export interface PersonLookupService {
-  lookup(personId: string, system: 'source' | 'target'): Promise<PersonLookupResult>;
+  lookup(params: PersonLookupParams): Promise<PersonLookupResult>;
 }
 
 export interface PersonSyncService {
@@ -22,18 +29,18 @@ export interface SystemStatusService {
 // Service Result Types
 export interface PersonLookupResult {
   personId: string;
-  sourceData: {
+  sourceData: [{
     buId: string;
     name: string;
     email: string;
     department: string;
     lastModified: string;
-  };
-  targetData: {
+  }];
+  targetData: [{
     hrn: string;
     status: string;
     lastSync: string;
-  };
+  }];
 }
 
 export interface PersonSyncResult {

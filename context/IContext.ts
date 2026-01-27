@@ -1,3 +1,4 @@
+import { Config } from 'integration-huron-person';
 import { IContext as ShibSpContext } from 'shibboleth-sp-at-edge';
 
 /**
@@ -13,7 +14,8 @@ type CoreInfrastructureProperties = Pick<
   'DNS'
 > & {
   LAMBDA_TIMEOUT_SECONDS?: number;
-  LAMBDA_MEMORY_SIZE_MB?: number; 
+  LAMBDA_MEMORY_SIZE_MB?: number;
+  INTEGRATION_CONFIG: Config;
 };
 
 export enum AuthenticationMode {

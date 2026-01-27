@@ -21,6 +21,7 @@ import { PersonSync } from './PersonSync';
 import { BulkSync } from './BulkSync';
 import { History } from './History';
 import { SystemStatus } from './SystemStatus';
+import { Config } from 'integration-huron-person';
 
 /**
  * Service provider that provides mock or concrete implementations
@@ -44,55 +45,55 @@ export class ServiceProvider {
   /**
    * Get person lookup service implementation
    */
-  static getPersonLookupService(): PersonLookupService {
+  static getPersonLookupService(config:Config): PersonLookupService {
     if (this.shouldUseMocks()) {
       return new MockPersonLookupService();
     } else {
-      return new PersonLookup();
+      return new PersonLookup(config);
     }
   }
 
   /**
    * Get person sync service implementation
    */
-  static getPersonSyncService(): PersonSyncService {
+  static getPersonSyncService(config:Config): PersonSyncService {
     if (this.shouldUseMocks()) {
       return new MockPersonSyncService();
     } else {
-      return new PersonSync();
+      return new PersonSync(config);
     }
   }
 
   /**
    * Get bulk sync service implementation
    */
-  static getBulkSyncService(): BulkSyncService {
+  static getBulkSyncService(config:Config): BulkSyncService {
     if (this.shouldUseMocks()) {
       return new MockBulkSyncService();
     } else {
-      return new BulkSync();
+      return new BulkSync(config);
     }
   }
 
   /**
    * Get history service implementation
    */
-  static getHistoryService(): HistoryService {
+  static getHistoryService(config:Config): HistoryService {
     if (this.shouldUseMocks()) {
       return new MockHistoryService();
     } else {
-      return new History();
+      return new History(config);
     }
   }
 
   /**
    * Get system status service implementation
    */
-  static getSystemStatusService(): SystemStatusService {
+  static getSystemStatusService(config:Config): SystemStatusService {
     if (this.shouldUseMocks()) {
       return new MockSystemStatusService();
     } else {
-      return new SystemStatus();
+      return new SystemStatus(config);
     }
   }
 }

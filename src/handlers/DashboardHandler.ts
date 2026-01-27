@@ -1,12 +1,14 @@
 import Mustache from 'mustache';
-import { LambdaFunctionUrlEvent, LambdaFunctionUrlResult } from './DashboardTypes';
-import { TemplateService } from '../services/TemplateService';
-import { ServiceProvider } from '../services/ServiceProvider';
-import { OriginHeader } from './OriginVerification';
-import { Request } from '../services/Request';
 import { Authenticator } from '../services/Authentication';
-// import { SinglePersonSync } from 'integration-huron-person';
+import { Request } from '../services/Request';
+import { ServiceProvider } from '../services/ServiceProvider';
+import { TemplateService } from '../services/TemplateService';
+import { DashboardCache } from './DashboardCache';
+import { LambdaFunctionUrlEvent, LambdaFunctionUrlResult } from './DashboardTypes';
+import { OriginHeader } from './OriginVerification';
 // import { ConfigManager } from 'integration-huron-person';
+
+let cache: DashboardCache = new DashboardCache();
 
 /**
  * Lambda event handler for the Integration Dashboard
@@ -65,19 +67,19 @@ export const handler = async (event: LambdaFunctionUrlEvent): Promise<LambdaFunc
         return request.getLoginResponse();
       
       case '/api/person-lookup':
-        return await handlePersonLookup(body);
+        return await handlePersonLookup({requestBody: body, cache });
       
       case '/api/person-sync':
-        return await handlePersonSync(body);
+        return await handlePersonSync({requestBody: body, cache });
       
       case '/api/bulk-sync':
-        return await handleBulkSync(body);
+        return await handleBulkSync({requestBody: body, cache });
       
       case '/api/history':
-        return await getHistory(queryParams);
+        return await getHistory({queryParams, cache});
       
       case '/api/status':
-        return await getSystemStatus();
+        return await getSystemStatus({ cache });
       
       default:
         return createResponse(404, 'text/html', '<h1>404 - Page Not Found</h1>');
@@ -149,24 +151,26 @@ async function renderLoginPage(): Promise<LambdaFunctionUrlResult> {
 /**
  * Handle person lookup by BUID or other identifier
  */
-async function handlePersonLookup(requestBody: string | null): Promise<LambdaFunctionUrlResult> {
+async function handlePersonLookup(params: { requestBody: string | null, cache: DashboardCache }): Promise<LambdaFunctionUrlResult> {
+  const { requestBody, cache } = params;
   if (!requestBody) {
     return createResponse(400, 'application/json', JSON.stringify({ error: 'Request body required' }));
   }
 
   try {
-    const { personId, system = 'source' } = JSON.parse(requestBody);
+    const { personId, system, searchType, firstName, lastName } = JSON.parse(requestBody);
     
     if (!personId) {
       return createResponse(400, 'application/json', JSON.stringify({ error: 'personId is required' }));
     }
 
-    // TODO: Implement actual person lookup
-    // This would use the integration-huron-person DataSource
-    const personLookupService = ServiceProvider.getPersonLookupService();
-    const mockResult = await personLookupService.lookup(personId, system);
+    const config = await cache.getConfiguration();
+    const personLookupService = ServiceProvider.getPersonLookupService(config);
+    const personLookupResult = await personLookupService.lookup({
+      personId, system, searchType, firstName, lastName
+    });
 
-    return createResponse(200, 'application/json', JSON.stringify(mockResult));
+    return createResponse(200, 'application/json', JSON.stringify(personLookupResult));
   } catch (error) {
     console.error('Error in person lookup:', error);
     return createResponse(500, 'application/json', JSON.stringify({ 
@@ -179,7 +183,8 @@ async function handlePersonLookup(requestBody: string | null): Promise<LambdaFun
 /**
  * Handle individual person synchronization
  */
-async function handlePersonSync(requestBody: string | null): Promise<LambdaFunctionUrlResult> {
+async function handlePersonSync(params: { requestBody: string | null, cache: DashboardCache }): Promise<LambdaFunctionUrlResult> {
+  const { requestBody, cache } = params;
   if (!requestBody) {
     return createResponse(400, 'application/json', JSON.stringify({ error: 'Request body required' }));
   }
@@ -196,7 +201,8 @@ async function handlePersonSync(requestBody: string | null): Promise<LambdaFunct
     // TODO: Implement actual sync using SinglePersonSync
     // const syncResult = await SinglePersonSync.sync(personId, operation);
     
-    const personSyncService = ServiceProvider.getPersonSyncService();
+    const config = await cache.getConfiguration();
+    const personSyncService = ServiceProvider.getPersonSyncService(config);
     const mockResult = await personSyncService.sync(personId, operation);
 
     return createResponse(200, 'application/json', JSON.stringify(mockResult));
@@ -212,7 +218,8 @@ async function handlePersonSync(requestBody: string | null): Promise<LambdaFunct
 /**
  * Handle bulk synchronization operations
  */
-async function handleBulkSync(requestBody: string | null): Promise<LambdaFunctionUrlResult> {
+async function handleBulkSync(params: { requestBody: string | null, cache: DashboardCache }): Promise<LambdaFunctionUrlResult> {
+  const { requestBody, cache } = params;
   if (!requestBody) {
     return createResponse(400, 'application/json', JSON.stringify({ error: 'Request body required' }));
   }
@@ -221,7 +228,8 @@ async function handleBulkSync(requestBody: string | null): Promise<LambdaFunctio
     const { operation, batchSize, filters } = JSON.parse(requestBody);
     
     // TODO: Implement actual bulk sync
-    const bulkSyncService = ServiceProvider.getBulkSyncService();
+    const config = await cache.getConfiguration();
+    const bulkSyncService = ServiceProvider.getBulkSyncService(config);
     const mockResult = await bulkSyncService.start(operation, batchSize, filters);
 
     return createResponse(200, 'application/json', JSON.stringify(mockResult));
@@ -237,12 +245,14 @@ async function handleBulkSync(requestBody: string | null): Promise<LambdaFunctio
 /**
  * Get activity history from S3 or database
  */
-async function getHistory(queryParams: any): Promise<LambdaFunctionUrlResult> {
+async function getHistory(params: { queryParams: any, cache: DashboardCache }): Promise<LambdaFunctionUrlResult> {
+  const { queryParams, cache } = params;
   try {
     const { startDate, endDate, limit = 50 } = queryParams;
     
     // TODO: Implement actual S3 history retrieval
-    const historyService = ServiceProvider.getHistoryService();
+    const config = await cache.getConfiguration();
+    const historyService = ServiceProvider.getHistoryService(config);
     const historyData = await historyService.getHistory(startDate, endDate, limit);
 
     return createResponse(200, 'application/json', JSON.stringify(historyData));
@@ -258,10 +268,12 @@ async function getHistory(queryParams: any): Promise<LambdaFunctionUrlResult> {
 /**
  * Get current system status and health
  */
-async function getSystemStatus(): Promise<LambdaFunctionUrlResult> {
+async function getSystemStatus(params: { cache: DashboardCache }): Promise<LambdaFunctionUrlResult> {
+  const { cache } = params;
   try {
     // TODO: Implement actual health checks
-    const systemStatusService = ServiceProvider.getSystemStatusService();
+    const config = await cache.getConfiguration();
+    const systemStatusService = ServiceProvider.getSystemStatusService(config);
     const status = await systemStatusService.getStatus();
 
     return createResponse(200, 'application/json', JSON.stringify(status));

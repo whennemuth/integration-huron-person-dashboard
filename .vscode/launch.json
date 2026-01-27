@@ -22,12 +22,12 @@
         "${file}"
       ], 
       "env": {
-        "AWS_PROFILE": "bu",
+        "AWS_PROFILE": "infnprd",
         "REGION": "us-east-2",
         "LANDSCAPE": "dev",
         "DEBUG": "true"
       }, 
-      "envFile": "${workspaceFolder}/debug.env"
+      "envFile": "${workspaceFolder}/.env"
     },
     {
       "type": "node",
@@ -42,7 +42,6 @@
       "console": "integratedTerminal",
       "restart": false,
       "env": {
-        "LOCALHOST_WITH_MOCKS": "true",
         "NODE_COMPILE_CACHE": ".vscode/compile-cache"
       },
       "envFile": "${workspaceFolder}/.env"
@@ -60,7 +59,6 @@
       "console": "integratedTerminal",
       "restart": false,
       "env": {
-        "LOCALHOST_WITH_MOCKS": "true",
         "AWS_LAMBDA_FUNCTION_NAME": "local-dashboard",
         "NODE_COMPILE_CACHE": ".vscode/compile-cache"
       },

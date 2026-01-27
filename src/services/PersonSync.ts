@@ -1,9 +1,13 @@
+import { Config } from 'integration-huron-person';
 import { PersonSyncService, PersonSyncResult } from './ServiceTypes';
 
 /**
  * Person synchronization implementation using SinglePersonSync
  */
 export class PersonSync implements PersonSyncService {
+
+  constructor(private config: Config) { }
+  
   async sync(personId: string, operation: string): Promise<PersonSyncResult> {
     // TODO: Implement actual person sync using SinglePersonSync
     // Example implementation:
