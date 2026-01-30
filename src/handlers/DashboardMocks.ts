@@ -12,6 +12,8 @@ import {
   SystemStatusResult,
   PersonLookupParams
 } from '../services/ServiceTypes';
+import { CrudOperation } from 'integration-core';
+import { PersonPushRequest } from 'integration-huron-person';
 
 export class MockPersonLookupService implements PersonLookupService {
   async lookup(params: PersonLookupParams): Promise<PersonLookupResult> {
@@ -37,7 +39,26 @@ export class MockPersonLookupService implements PersonLookupService {
 }
 
 export class MockPersonSyncService implements PersonSyncService {
-  async sync(personId: string, operation: string): Promise<PersonSyncResult> {
+  async preview(personId: string, operation: CrudOperation): Promise<PersonPushRequest> {
+    return {
+      operation: operation as 'create' | 'update' | 'delete',
+      data: {
+        personId,
+        fieldSets: [
+          {
+            fieldValues: [
+              { id: personId },
+              { firstName: 'Mock' },
+              { lastName: 'Person' },
+              { email: 'mock@example.com' }
+            ]
+          }
+        ]
+      }
+    };
+  }
+
+  async sync(personId: string, operation: CrudOperation): Promise<PersonSyncResult> {
     return {
       personId,
       operation,
@@ -117,7 +138,7 @@ export class MockSystemStatusService implements SystemStatusService {
 export class MockSinglePersonSync {
   static async sync(personId: string, operation: string) {
     const service = new MockPersonSyncService();
-    return await service.sync(personId, operation);
+    return await service.sync(personId, CrudOperation.CREATE);
   }
 }
 

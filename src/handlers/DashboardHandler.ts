@@ -6,6 +6,8 @@ import { TemplateService } from '../services/TemplateService';
 import { DashboardCache } from './DashboardCache';
 import { LambdaFunctionUrlEvent, LambdaFunctionUrlResult } from './DashboardTypes';
 import { OriginHeader } from './OriginVerification';
+import { CrudOperation } from 'integration-core';
+
 // import { ConfigManager } from 'integration-huron-person';
 
 let cache: DashboardCache = new DashboardCache();
@@ -68,6 +70,9 @@ export const handler = async (event: LambdaFunctionUrlEvent): Promise<LambdaFunc
       
       case '/api/person-lookup':
         return await handlePersonLookup({requestBody: body, cache });
+
+      case '/api/person-sync/preview':
+        return await handlePersonSyncPreview({requestBody: body, cache });
       
       case '/api/person-sync':
         return await handlePersonSync({requestBody: body, cache });
@@ -180,6 +185,50 @@ async function handlePersonLookup(params: { requestBody: string | null, cache: D
   }
 }
 
+async function handlePersonSyncPreview(params: { requestBody: string | null, cache: DashboardCache }): Promise<LambdaFunctionUrlResult> {
+  const { requestBody, cache } = params;
+  if (!requestBody) {
+    return createResponse(400, 'application/json', JSON.stringify({ error: 'Request body required' }));
+  }
+
+  try {
+    let { personId: buid, operation } = JSON.parse(requestBody);
+
+    // Default to CREATE if no operation provided
+    if( ! operation) {
+      operation = CrudOperation.CREATE;
+    }
+
+    // Make sure buid is provided
+    if (!buid) {
+      return createResponse(400, 'application/json', JSON.stringify({ 
+        error: 'BUID is required' 
+      }));
+    }
+
+    // Make sure operation is a member of CrudOperation
+    const validOperations = Object.values(CrudOperation);
+    if (!validOperations.includes(operation)) {
+      return createResponse(400, 'application/json', JSON.stringify({ 
+        error: `Invalid operation. Must be one of: ${validOperations.join(', ')}`
+      }));
+    }
+
+    const crudOperation = operation as CrudOperation;
+    const config = await cache.getConfiguration();
+    const personSyncService = ServiceProvider.getPersonSyncService(config);
+    const pushRequest = await personSyncService.preview(buid, crudOperation);
+    return createResponse(200, 'application/json', JSON.stringify(pushRequest));
+
+  } catch (error) {
+    console.error('Error in person sync preview:', error);
+    return createResponse(500, 'application/json', JSON.stringify({ 
+      error: 'Person sync preview failed', 
+      message: error instanceof Error ? error.message : 'Unknown error' 
+    }));
+  }
+}
+
 /**
  * Handle individual person synchronization
  */
@@ -197,15 +246,13 @@ async function handlePersonSync(params: { requestBody: string | null, cache: Das
         error: 'personId and operation are required' 
       }));
     }
-
-    // TODO: Implement actual sync using SinglePersonSync
-    // const syncResult = await SinglePersonSync.sync(personId, operation);
     
+    const crudOperation = operation as CrudOperation;
     const config = await cache.getConfiguration();
     const personSyncService = ServiceProvider.getPersonSyncService(config);
-    const mockResult = await personSyncService.sync(personId, operation);
-
+    const mockResult = await personSyncService.sync(personId, crudOperation);
     return createResponse(200, 'application/json', JSON.stringify(mockResult));
+
   } catch (error) {
     console.error('Error in person sync:', error);
     return createResponse(500, 'application/json', JSON.stringify({ 

@@ -1,3 +1,6 @@
+import { CrudOperation } from 'integration-core';
+import { PersonPushRequest } from "integration-huron-person";
+
 // Service Interfaces
 export type PersonLookupParams = {
   system: 'source' | 'target' | 'source-only' | 'target-only';
@@ -11,7 +14,8 @@ export interface PersonLookupService {
 }
 
 export interface PersonSyncService {
-  sync(personId: string, operation: string): Promise<PersonSyncResult>;
+  preview(personId: string, operation: CrudOperation): Promise<PersonPushRequest>;
+  sync(personId: string, operation: CrudOperation): Promise<PersonSyncResult>;
 }
 
 export interface BulkSyncService {

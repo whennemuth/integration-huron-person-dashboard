@@ -1,4 +1,4 @@
-import { Config, DataMapper, HuronPersonDataSource, ReadPeople, ReadPerson, TokenAuthConfig } from 'integration-huron-person';
+import { Config, ConfigManager, DataMapper, HuronPersonDataSource, ReadPeople, ReadPerson, TokenAuthConfig } from 'integration-huron-person';
 import { IContext } from '../../context/IContext';
 import { PersonLookupParams, PersonLookupResult, PersonLookupService } from './ServiceTypes';
 
@@ -45,21 +45,25 @@ export class PersonLookup implements PersonLookupService {
    * @returns 
    */
   private lookupSourcePerson = async (params: PersonLookupParams, lookupTarget?: (params: PersonLookupParams) => Promise<PersonLookupResult>): Promise<PersonLookupResult> =>  {
-    const { personId, system, searchType, firstName, lastName } = params;
+    const { personId, searchType } = params;
     console.log(`Looking up person in source system by ${searchType}: ${personId}`);
     const dataMapper = new DataMapper();
     const dataSource = new HuronPersonDataSource({
       config: this.config, dataMapper, buid: personId
     });
     const sourceData = await dataSource.fetchRaw();
-    console.log('Fetched CDM Person Data:', JSON.stringify(sourceData, null, 2));
     if( sourceData.length === 0 ) {
+      console.warn(`No source records found for personId: ${personId}`);
       return { personId, sourceData: [] as any[], targetData: [] as any[] } as PersonLookupResult;
     }
     if( sourceData.length > 1 ) {
+      console.warn(`Multiple source records found for personId: ${personId}`);
       return { personId, sourceData, targetData: [] as any[] } as PersonLookupResult;
     }
-    const buid = sourceData[0]?.personid;
+
+    const {  personid:buid, personBasic: { names } = {}} = sourceData[0];
+    const {firstName:fn, lastName:ln } = names?.[0] || {};
+    console.log('Fetched CDM Person Data:', JSON.stringify({ buid, fn, ln }, null, 2));
     if( ! buid ) {
       throw new Error(`No personid found in source data for personId: ${personId}`);
     }
@@ -132,15 +136,17 @@ export class PersonLookup implements PersonLookupService {
     }
     else {
       if( targetData.length === 0 ) {
+        console.warn(`No target records found for personId: ${personId}`);
         return { personId: params.personId, sourceData: [] as any[], targetData: [] as any[] } as PersonLookupResult;
       }
       if( targetData.length > 1 ) {
+        console.warn(`Multiple target records found for personId: ${personId}`);
         return { personId: params.personId, sourceData: [] as any[], targetData } as PersonLookupResult;
       }
 
       // Single person result. Search for a the BUID in the Huron data (could be in sourceIdentifier or id field)
-      const hrn = targetData[0]?.hrn;
-      let sid = targetData[0]?.sourceIdentifier;
+      let { hrn, firstName, lastName, sourceIdentifier:sid } = targetData[0];
+      console.log('Fetched Huron Person Data:', JSON.stringify({ hrn, firstName, lastName, sid }, null, 2));
       if( ! isABuid(sid) ) {
         sid = targetData[0]?.id;
       }
@@ -156,7 +162,7 @@ export class PersonLookup implements PersonLookupService {
       }
 
       const sourceResult: PersonLookupResult = await lookupSource({ personId: sid, system: 'source', searchType: 'buid' });
-      const { sourceData } = sourceResult;
+      const { sourceData } = sourceResult ?? {};
       return { personId: hrn, sourceData, targetData } as PersonLookupResult;    
     }
   }
@@ -184,7 +190,7 @@ if (require.main === module) {
     }
     if( ! DATATARGET_ENDPOINTCONFIG_EXTERNAL_TOKEN ) {
       throw new Error('DATATARGET_ENDPOINTCONFIG_EXTERNAL_TOKEN is missing in environment variables');
-    }    
+    }
 
     config.dataSource.endpointConfig.apiKey = DATASOURCE_ENDPOINTCONFIG_API_KEY;
     (config.dataTarget.endpointConfig as TokenAuthConfig).externalToken = DATATARGET_ENDPOINTCONFIG_EXTERNAL_TOKEN;
@@ -193,8 +199,8 @@ if (require.main === module) {
     try {
       const result = await personLookup.lookup({
         personId: 'U21967744',
-        system: 'source',
-        searchType: 'buid'
+        system: 'target-only',
+        searchType: 'sid'
       });
       console.log('Lookup result:', result);
     } catch (error) {
