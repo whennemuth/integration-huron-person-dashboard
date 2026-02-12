@@ -1,4 +1,4 @@
-import { JwtTools } from 'shibboleth-sp';
+import { APP_AUTHORIZATION_HEADER_NAME, JwtTools } from 'shibboleth-sp';
 import { LambdaFunctionUrlEvent, LambdaFunctionUrlResult } from '../handlers/DashboardTypes';
 
 const { APP_LOGIN_HEADER, APP_LOGOUT_HEADER, APP_AUTHORIZATION='false' } = process.env;
@@ -33,7 +33,7 @@ export class Authenticator {
   public get appWillDecideAuth(): boolean {
     let appAuth = APP_AUTHORIZATION == 'true';
     if( ! appAuth) {
-      appAuth = 'true' == this._event.headers?.APP_AUTHORIZATION;
+      appAuth = 'true' == this._event.headers?.[APP_AUTHORIZATION_HEADER_NAME.toLowerCase()];
     }
     return appAuth;
   }
