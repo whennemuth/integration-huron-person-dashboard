@@ -27,3 +27,9 @@ export const echoStackName = () => {
   const stackName = getStackName(contextModule);
   console.log(stackName);
 }
+
+export const isTruthy = (value?:any):boolean => {
+  const val = `${value}`.trim().toLowerCase();
+  return val === 'true' || val === 'yes' || val === 'y' || val === '1';
+}
+

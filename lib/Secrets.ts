@@ -11,7 +11,31 @@ export class SecretsManagerSecret {
   private _secret: Secret;
 
   constructor(scope: Construct, context:IContext) {
-    const { INTEGRATION_CONFIG, STACK_ID, TAGS: { Landscape='dev' } = {}} = context;
+    const { STACK_ID, TAGS: { Landscape='dev' } = {}} = context;
+
+    const integrationConfig = buildSecretValue(context);
+
+    const secretName = `${STACK_ID}/integration/config/${Landscape}`;
+
+    const secret = new Secret(scope, 'integration-secret', {
+      secretName,
+      secretStringValue: SecretValue.unsafePlainText(integrationConfig),
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+    this._secret = secret;
+  }
+
+  public get secretName(): string {
+    return this._secret.secretName;
+  }
+
+  public get secretArn(): string {
+    return this._secret.secretArn;
+  }
+}
+
+export const buildSecretValue = (context: IContext): string => {
+    const { INTEGRATION_CONFIG } = context;
     let cfgMgr = ConfigManager.getInstance();
 
     /**
@@ -28,23 +52,7 @@ export class SecretsManagerSecret {
      */
     cfgMgr = cfgMgr.fromPartial(INTEGRATION_CONFIG);
 
-    const integrationConfig = cfgMgr.getConfig();
+    const integrationConfig = cfgMgr.getConfig('none');
 
-    const secretName = `${STACK_ID}/integration/config/${Landscape}`;
-
-    const secret = new Secret(scope, 'integration-secret', {
-      secretName,
-      secretStringValue: SecretValue.unsafePlainText(JSON.stringify(integrationConfig)),
-      removalPolicy: RemovalPolicy.DESTROY,
-    });
-    this._secret = secret;
-  }
-
-  public get secretName(): string {
-    return this._secret.secretName;
-  }
-
-  public get secretArn(): string {
-    return this._secret.secretArn;
-  }
+    return JSON.stringify(integrationConfig);
 }

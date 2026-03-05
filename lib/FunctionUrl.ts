@@ -8,7 +8,7 @@ import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
 import { AuthenticatedContext, AuthenticationMode, IContext } from "../context/IContext";
-import { SECRET_ARN, SECRET_REGION } from "../src/handlers/DashboardCache";
+import { CACHE_SECRET } from "../src/handlers/DashboardCache";
 
 export class FunctionUrlOrigin {
   private lambda: NodejsFunction;
@@ -30,10 +30,11 @@ export class FunctionUrlOrigin {
     this.originVerifySecret = `cf-origin-verify-${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}${Date.now().toString(36)}`;
 
     // Start with base environment variable(s)
+    const {env: { arn, region } } = CACHE_SECRET;
     let environment = {
       ORIGIN_VERIFY_SECRET: this.originVerifySecret,
-      [SECRET_ARN]: secretArn,
-      [SECRET_REGION]: REGION,
+      [arn]: secretArn,
+      [region]: REGION,
     } as any;
 
     // Add authentication-related environment variables if applicable

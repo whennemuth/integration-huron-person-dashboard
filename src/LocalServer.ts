@@ -1,6 +1,12 @@
 import express from 'express';
-import { handler } from './handlers/DashboardHandler';
 import { join } from 'path';
+import { IContext } from "../context/IContext";
+import { buildSecretValue } from '../lib/Secrets';
+import { CACHE_JSON } from './handlers/DashboardCache';
+import { handler } from './handlers/DashboardHandler';
+import { isTruthy } from './Utils';
+
+export const OVERRIDE_CACHE_WITH_LOCAL_CONTEXT = 'OVERRIDE_CACHE_WITH_LOCAL_CONTEXT';
 
 // Local type definition for Lambda Function URL event (based on AWS docs)
 interface LambdaFunctionUrlEvent {
@@ -35,6 +41,17 @@ interface LambdaFunctionUrlEvent {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+if (isTruthy(process.env[OVERRIDE_CACHE_WITH_LOCAL_CONTEXT])) {
+  /**
+   * Get the secret values that would otherwise have been persisted in a file or secrets 
+   * manager directly out of the context file and put them in an environment variable for the 
+   * local server to use as a cache bypass if the environment variable is set to a truthy value. This allows developers to work with local context values without needing to persist them in a cache file or secrets manager, which can be especially useful for testing and development purposes.
+   */
+  console.log('Overriding cache with local context values as per environment variable setting');
+  const context = require('../context/context.json') as IContext;
+  process.env[CACHE_JSON] = buildSecretValue(context);
+}
 
 // Middleware
 app.use(express.json({ limit: '10mb' }));
