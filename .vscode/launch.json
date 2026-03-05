@@ -10,7 +10,7 @@
       "args": ["${workspaceFolder}/bin/App.ts"],
       "env": {
         "AWS_PROFILE": "infnprd"
-      },
+      }
     },
     {
       "type": "node",
@@ -39,7 +39,6 @@
         "--transpile-only",
         "${workspaceFolder}/src/LocalServer.ts"
       ],
-      "console": "integratedTerminal",
       "restart": false,
       "env": {
         "NODE_COMPILE_CACHE": ".vscode/compile-cache"
@@ -56,7 +55,6 @@
         "--transpile-only",
         "${workspaceFolder}/src/LocalServer.ts"
       ],
-      "console": "integratedTerminal",
       "restart": false,
       "env": {
         "AWS_LAMBDA_FUNCTION_NAME": "local-dashboard",
