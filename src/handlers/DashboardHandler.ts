@@ -6,7 +6,9 @@ import { TemplateService } from '../services/TemplateService';
 import { DashboardCache } from './DashboardCache';
 import { LambdaFunctionUrlEvent, LambdaFunctionUrlResult } from './DashboardTypes';
 import { OriginHeader } from './OriginVerification';
-import { CrudOperation } from 'integration-core';
+import { CrudOperation, Status } from 'integration-core';
+import { PersonSyncResult } from '../services/ServiceTypes';
+import { areTheSame } from '../Utils';
 
 // import { ConfigManager } from 'integration-huron-person';
 
@@ -71,6 +73,9 @@ export const handler = async (event: LambdaFunctionUrlEvent): Promise<LambdaFunc
       case '/api/person-lookup':
         return await handlePersonLookup({requestBody: body, cache });
 
+      case '/api/person-sync/preview-experiment':
+        return await handlePersonSyncPreviewExperiment({requestBody: body, cache });
+
       case '/api/person-sync/preview':
         return await handlePersonSyncPreview({requestBody: body, cache });
       
@@ -113,11 +118,13 @@ async function renderDashboard(activeTab?: string): Promise<LambdaFunctionUrlRes
       activeTab: activeTab || 'individual',
       tabs: [
         { id: 'individual', label: 'Individual Sync', active: (activeTab || 'individual') === 'individual' },
+        { id: 'mapping', label: 'Person Mapping', active: activeTab === 'mapping' },
         { id: 'bulk', label: 'Bulk Operations', active: activeTab === 'bulk' },
         { id: 'history', label: 'Activity History', active: activeTab === 'history' },
         { id: 'system', label: 'System Status', active: activeTab === 'system' }
       ],
       individualActive: (activeTab || 'individual') === 'individual',
+      mappingActive: activeTab === 'mapping',
       bulkActive: activeTab === 'bulk',
       historyActive: activeTab === 'history',
       systemActive: activeTab === 'system',
@@ -170,6 +177,11 @@ async function handlePersonLookup(params: { requestBody: string | null, cache: D
     }
 
     const config = await cache.getConfiguration();
+    if (config.dataSource.person) {
+      // Remove fieldsOfInterest from config before passing to service, as it will interfere with 
+      // getting a full person from the lookup, where we don't want any fields to be filtered out.
+      delete config.dataSource.person.fieldsOfInterest;
+    }
     const personLookupService = ServiceProvider.getPersonLookupService(config);
     const personLookupResult = await personLookupService.lookup({
       personId, system, searchType, firstName, lastName
@@ -185,6 +197,14 @@ async function handlePersonLookup(params: { requestBody: string | null, cache: D
   }
 }
 
+/**
+ * Provide a preview of how a person sync operation would be processed, by returning the result of
+ * mapping the source person data (indicated by the personId) to the target format for sync
+ * operations. This allows users to experiment with different person records, and see how the sync 
+ * logic would handle them, without actually performing a sync. 
+ * @param params 
+ * @returns 
+ */
 async function handlePersonSyncPreview(params: { requestBody: string | null, cache: DashboardCache }): Promise<LambdaFunctionUrlResult> {
   const { requestBody, cache } = params;
   if (!requestBody) {
@@ -194,11 +214,6 @@ async function handlePersonSyncPreview(params: { requestBody: string | null, cac
   try {
     let { personId: buid, operation } = JSON.parse(requestBody);
 
-    // Default to CREATE if no operation provided
-    if( ! operation) {
-      operation = CrudOperation.CREATE;
-    }
-
     // Make sure buid is provided
     if (!buid) {
       return createResponse(400, 'application/json', JSON.stringify({ 
@@ -206,15 +221,19 @@ async function handlePersonSyncPreview(params: { requestBody: string | null, cac
       }));
     }
 
+    let crudOperation: CrudOperation | undefined = undefined;
+
     // Make sure operation is a member of CrudOperation
-    const validOperations = Object.values(CrudOperation);
-    if (!validOperations.includes(operation)) {
-      return createResponse(400, 'application/json', JSON.stringify({ 
-        error: `Invalid operation. Must be one of: ${validOperations.join(', ')}`
-      }));
+    if(operation) {
+      const validOperations = Object.values(CrudOperation);
+      if (!validOperations.includes(operation)) {
+        return createResponse(400, 'application/json', JSON.stringify({ 
+          error: `Invalid operation. Must be one of: ${validOperations.join(', ')}`
+        }));
+      }
+      crudOperation = operation as CrudOperation;
     }
 
-    const crudOperation = operation as CrudOperation;
     const config = await cache.getConfiguration();
     const personSyncService = ServiceProvider.getPersonSyncService(config);
     const pushRequest = await personSyncService.preview(buid, crudOperation);
@@ -230,6 +249,56 @@ async function handlePersonSyncPreview(params: { requestBody: string | null, cac
 }
 
 /**
+ * The user is experimenting with the sync preview endpoint that accepts raw person JSON. This json
+ * should follow the same structure as the data handlePersonSyncPreview would normally retrieve 
+ * from the person lookup service, but in this case the user is supplying a "mock" value to see 
+ * how the backend would map to the target format for sync operations. This is meant to be a 
+ * flexible endpoint for testing different person data inputs and seeing how the sync preview 
+ * logic handles them, without needing to set up specific records in the source system.
+ * @param params 
+ * @returns 
+ */
+async function handlePersonSyncPreviewExperiment(params: { requestBody: string | null, cache: DashboardCache }): Promise<LambdaFunctionUrlResult> {
+  const { requestBody, cache } = params;
+  if (!requestBody) {
+    return createResponse(400, 'application/json', JSON.stringify({ error: 'Request body required' }));
+  }
+
+  try {
+    let { personId: buid, personJson } = JSON.parse(requestBody);
+
+    // Make sure personJson is provided
+    if (!personJson) {
+      return createResponse(400, 'application/json', JSON.stringify({ 
+        error: 'personJson is required' 
+      }));
+    }
+    
+    // Make sure personJson is valid JSON
+    let parsedPerson:any;
+    try {
+      parsedPerson = JSON.parse(personJson);
+    } catch {
+      return createResponse(400, 'application/json', JSON.stringify({ 
+        error: 'personJson must be valid JSON' 
+      }));
+    }
+
+    const config = await cache.getConfiguration();
+    const personSyncService = ServiceProvider.getPersonSyncService(config);
+    const pushRequest = await personSyncService.previewExperiment(buid, [ parsedPerson ]);
+    return createResponse(200, 'application/json', JSON.stringify(pushRequest));
+    
+  } catch (error) {
+    console.error('Error in person sync preview experiment:', error);
+    return createResponse(500, 'application/json', JSON.stringify({ 
+      error: 'Person sync preview experiment failed', 
+      message: error instanceof Error ? error.message : 'Unknown error' 
+    }));
+  }
+
+}
+/**
  * Handle individual person synchronization
  */
 async function handlePersonSync(params: { requestBody: string | null, cache: DashboardCache }): Promise<LambdaFunctionUrlResult> {
@@ -239,7 +308,7 @@ async function handlePersonSync(params: { requestBody: string | null, cache: Das
   }
 
   try {
-    const { personId, operation } = JSON.parse(requestBody);
+    const { personId, operation, hrn } = JSON.parse(requestBody);
     
     if (!personId || !operation) {
       return createResponse(400, 'application/json', JSON.stringify({ 
@@ -250,13 +319,19 @@ async function handlePersonSync(params: { requestBody: string | null, cache: Das
     const crudOperation = operation as CrudOperation;
     const config = await cache.getConfiguration();
     const personSyncService = ServiceProvider.getPersonSyncService(config);
-    const mockResult = await personSyncService.sync(personId, crudOperation);
-    return createResponse(200, 'application/json', JSON.stringify(mockResult));
+    const syncResult: PersonSyncResult = await personSyncService.sync(personId, crudOperation, hrn);
+    if(!areTheSame(syncResult.status, Status.SUCCESS)) {
+      return createResponse(500, 'application/json', JSON.stringify({ 
+        error: 'Person sync failed', 
+        message: syncResult.details || 'Unknown error during synchronization'
+      }));
+    }
+    return createResponse(200, 'application/json', JSON.stringify(syncResult));
 
   } catch (error) {
     console.error('Error in person sync:', error);
     return createResponse(500, 'application/json', JSON.stringify({ 
-      error: 'Sync failed', 
+      error: 'Person sync failed', 
       message: error instanceof Error ? error.message : 'Unknown error' 
     }));
   }

@@ -14,8 +14,9 @@ export interface PersonLookupService {
 }
 
 export interface PersonSyncService {
-  preview(personId: string, operation: CrudOperation): Promise<PersonPushRequest>;
-  sync(personId: string, operation: CrudOperation): Promise<PersonSyncResult>;
+  previewExperiment(personId: string, rawData: any[], operation?: CrudOperation): Promise<PersonPushRequest>;
+  preview(personId: string, operation?: CrudOperation): Promise<PersonPushRequest>;
+  sync(personId: string, operation: CrudOperation, hrn?: string): Promise<PersonSyncResult>;
 }
 
 export interface BulkSyncService {

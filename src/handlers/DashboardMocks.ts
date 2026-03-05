@@ -58,6 +58,27 @@ export class MockPersonSyncService implements PersonSyncService {
     };
   }
 
+  async previewExperiment(personId: string, rawData: any[], operation?: CrudOperation): Promise<PersonPushRequest> {
+    // Same as preview(), but without operation field
+    // Uses provided rawData instead of looking it up
+    const mockPersonId = personId || rawData[0]?.personid || 'U1234567';
+    return {
+      data: {
+        personId: mockPersonId,
+        fieldSets: [
+          {
+            fieldValues: [
+              { id: mockPersonId },
+              { firstName: rawData[0]?.personBasic?.names?.[0]?.firstName || 'Mock' },
+              { lastName: rawData[0]?.personBasic?.names?.[0]?.lastName || 'Person' },
+              { email: rawData[0]?.personContact?.emails?.[0]?.emailAddress || 'mock@example.com' }
+            ]
+          }
+        ]
+      }
+    } as PersonPushRequest;
+  }
+
   async sync(personId: string, operation: CrudOperation): Promise<PersonSyncResult> {
     return {
       personId,

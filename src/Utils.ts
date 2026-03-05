@@ -36,3 +36,11 @@ export const isTruthy = (value?:any):boolean => {
 export const isRunningInLambda = (): boolean => {
    return !!process.env.AWS_LAMBDA_FUNCTION_NAME;
 }
+
+export const equalsIgnoreCase = (a:string, b:string):boolean => {
+  return `${a}`.toLowerCase() === `${b}`.toLowerCase();
+}
+
+export const areTheSame = (a:string, b:string):boolean => {
+  return equalsIgnoreCase(`${a}`.trim(), `${b}`.trim());
+}
