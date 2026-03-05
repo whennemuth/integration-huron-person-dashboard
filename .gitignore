@@ -5,6 +5,7 @@ src/handlers/TemplateConstants.ts
 dist/
 dist/*
 *.js
+!public/js/*.js
 !jest.config.js
 *.d.ts
 node_modules
