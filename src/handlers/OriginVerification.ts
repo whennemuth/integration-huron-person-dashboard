@@ -2,6 +2,7 @@
  * Origin verification utility for validating CloudFront requests
  */
 
+import { isRunningInLambda } from '../Utils';
 import { LambdaFunctionUrlEvent, LambdaFunctionUrlResult } from './DashboardTypes';
 
 export interface OriginVerificationResult {
@@ -39,11 +40,7 @@ export class OriginHeader {
   private computeVerification(): OriginVerificationResult {
     const expectedSecret = process.env.ORIGIN_VERIFY_SECRET;
 
-    const isLambdaEnvironment = (): boolean => {
-      return !!process.env.AWS_LAMBDA_FUNCTION_NAME;
-    }
-
-    if (!isLambdaEnvironment()) {
+    if (!isRunningInLambda()) {
       // If not Lambda environment, skip verification (might be running locally or in a test environment).
       return { isValid: true };
     }

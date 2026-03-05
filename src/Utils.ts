@@ -33,3 +33,6 @@ export const isTruthy = (value?:any):boolean => {
   return val === 'true' || val === 'yes' || val === 'y' || val === '1';
 }
 
+export const isRunningInLambda = (): boolean => {
+   return !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+}
