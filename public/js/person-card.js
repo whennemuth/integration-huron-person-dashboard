@@ -15,7 +15,22 @@ class PersonCard {
      */
     render(data, searchPersonId = null) {
         this.currentData = data;
-        this.searchPersonId = searchPersonId; // Store for sync operations
+
+        const { sourceData } = data || {};
+        if(sourceData && Array.isArray(sourceData) && sourceData.length === 1 && sourceData[0].personid) {
+            // Extract the actual personId from the source data
+            this.searchPersonId = sourceData[0].personid;
+        }
+        else {
+            /**
+             * No single sourceData result with a valid personid, so use the original search term.
+             * If the systemType radio selection was target, searchPersonId will probably not have 
+             * an actual source personid value, but a name, email, etc. value. This is still useful 
+             * to store so that if the user clicks "Sync Preview" or "Sync Now", we can display a 
+             * message like "No person ID found for [search term]" instead of just "No person ID found".
+             */
+            this.searchPersonId = searchPersonId;
+        }
         
         // Clear any previously cached hrn from prior lookups
         this.targetHrn = undefined;
@@ -26,7 +41,7 @@ class PersonCard {
             // Get hrn from first target record (only used if there's exactly one target record)
             this.targetHrn = data.targetData[0].hrn || data.targetData[0].id || null;
         }
-        
+
         this._renderContent();
     }
 
