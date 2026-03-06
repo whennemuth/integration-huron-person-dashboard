@@ -3,6 +3,8 @@
   "ACCOUNT": "770203350335",
   "REGION": "us-east-2",
   "AUTHENTICATION_MODE": "public",
+  "LAMBDA_TIMEOUT_SECONDS": 180,
+  "LAMBDA_MEMORY_SIZE_MB": 1024,
   "INTEGRATION_CONFIG": {
     "dataSource": {
       "person": {

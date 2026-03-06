@@ -29,7 +29,7 @@
       "jwtPublicKeySecretFld": "wp-jwt-pubkey"
     }
   },
-  "LAMBDA_TIMEOUT_SECONDS": 30,
+  "LAMBDA_TIMEOUT_SECONDS": 180,
   "LAMBDA_MEMORY_SIZE_MB": 1024,
   "INTEGRATION_CONFIG": {
     "dataSource": {
