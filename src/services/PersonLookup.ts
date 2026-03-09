@@ -10,6 +10,8 @@ import {
 import { IContext } from '../../context/IContext';
 import { PersonLookupParams, PersonLookupResult, PersonLookupService } from './ServiceTypes';
 
+const isABuid = (id:string) => /^U[0-9]{8}$/.test(id);
+
 /**
  * Person lookup implementation using actual integration APIs
  */
@@ -44,9 +46,6 @@ export class PersonLookup implements PersonLookupService {
       default:
         throw new Error(`Unknown system type: ${system}`);
     }
-    
-    // For now just return a mock value.
-    // return new MockPersonLookupService().lookup({ personId, system, searchType });
 
     return lookupResult;
   }
@@ -59,9 +58,17 @@ export class PersonLookup implements PersonLookupService {
    * @returns 
    */
   private lookupSourcePerson = async (params: PersonLookupParams, lookupTarget?: (params: PersonLookupParams) => Promise<PersonLookupResult>): Promise<PersonLookupResult> =>  {
-    const { config, config: { dataSource: { person, person: { fieldsOfInterest } = {} } = {} } = {} } = this;
+    const { config, config: { 
+      dataSource: { person, person: { fieldsOfInterest } = {} } = {} 
+    } = {} } = this;
     const { personId, searchType } = params;
     console.log(`Looking up person in source system by ${searchType}: ${personId}`);
+
+    /** If for some reason the personId is not a valid BUID, cancel the lookup */
+    if( !isABuid(personId) ) {
+      console.warn(`Person ID ${personId} is not a valid BUID - cancelling source system lookup`);
+      return { personId, sourceData: [] as any[], targetData: [] as any[] } as PersonLookupResult;
+    }
 
     /** Create data source instance */
     let responseFilter: ResponseProcessor | undefined;
@@ -153,7 +160,6 @@ export class PersonLookup implements PersonLookupService {
         throw new Error(`Unsupported search type for target system: ${searchType}`);
     }
 
-    const isABuid = (id:string) => /^U[0-9]{8}$/.test(id);
     let sid: string;
 
     if( targetData.length === 0 && searchType === 'sid' && isABuid(personId) && lookupSource) {
