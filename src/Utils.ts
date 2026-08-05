@@ -44,3 +44,5 @@ export const equalsIgnoreCase = (a:string, b:string):boolean => {
 export const areTheSame = (a:string, b:string):boolean => {
   return equalsIgnoreCase(`${a}`.trim(), `${b}`.trim());
 }
+
+export const isABuid = (id:string) => /^U[0-9]{8,9}$/.test(id);

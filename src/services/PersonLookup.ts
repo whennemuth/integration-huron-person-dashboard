@@ -9,8 +9,7 @@ import {
 } from 'integration-huron-person';
 import { IContext } from '../../context/IContext';
 import { PersonLookupParams, PersonLookupResult, PersonLookupService } from './ServiceTypes';
-
-const isABuid = (id:string) => /^U[0-9]{8}$/.test(id);
+import { isABuid } from '../Utils';
 
 /**
  * Person lookup implementation using actual integration APIs
@@ -96,7 +95,8 @@ export class PersonLookup implements PersonLookupService {
      * Single person record found in source system. If lookupTarget is provided, lookup the 
      * corresponding person in the target system as well and return both source and target data.
      */
-    const { personid:buid, personBasic: { names } = {}} = sourceData[0];
+    const { personid:buid, personBasic } = sourceData[0];
+    let names = personBasic?.names || {};
     const {firstName:fn, lastName:ln } = names?.[0] || {};
     console.log('Fetched CDM Person Data:', JSON.stringify({ buid, fn, ln }, null, 2));
     if( ! buid ) {
@@ -120,8 +120,9 @@ export class PersonLookup implements PersonLookupService {
    */
   private lookupTargetPerson = async (params: PersonLookupParams, lookupSource?: (params: PersonLookupParams) => Promise<PersonLookupResult>): Promise<PersonLookupResult> => {
     const { personId, searchType, firstName, lastName } = params;
+    const { config } = this;
     let targetData: any[] = [];
-    const reader = new ReadPerson(this.config);
+    const reader = new ReadPerson({ config });
     switch (searchType) {
       case 'hrn':
         console.log(`Looking up person in target system by HRN: ${personId}`);
@@ -133,7 +134,7 @@ export class PersonLookup implements PersonLookupService {
         if( ! firstName && ! lastName ) {
           throw new Error('First name and last name must be provided for name search');
         }
-        const peopleReader = new ReadPeople(this.config);
+        const peopleReader = new ReadPeople({ config });
         if( firstName && lastName) {
           targetData = await peopleReader.readPeopleByFullName(firstName, lastName);
         }
