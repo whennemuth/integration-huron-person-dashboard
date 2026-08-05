@@ -19,6 +19,7 @@ export class SecretsManagerSecret {
 
     const secret = new Secret(scope, 'integration-secret', {
       secretName,
+      description: 'Huron Person integration configuration and secrets for dashboard app',
       secretStringValue: SecretValue.unsafePlainText(integrationConfig),
       removalPolicy: RemovalPolicy.DESTROY,
     });
