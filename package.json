@@ -1,9 +1,9 @@
 {
-  "name": "integration-huron-person-lambda",
+  "name": "integration-huron-person-dashboard",
   "description": "A serverless dashboard for managing integration operations between BU CDM and Huron systems",
   "version": "0.1.0",
   "bin": {
-    "integration-huron-person-lambda": "bin/App.js"
+    "integration-huron-person-dashboard": "bin/App.js"
   },
   "scripts": {
     "clearcache": "sh bin/clear-cache.sh",
@@ -19,7 +19,12 @@
     "synth": "npm run get-stack-name | xargs cdk synth 2>&1 | tee cdk.out/synth.output.yaml",
     "deploy": "npm run build:templates && cdk deploy --all --no-rollback --require-approval never",
     "redeploy": "cdk destroy --all -f && npm run deploy --all",
-    "teardown": "cdk destroy -f"
+    "teardown": "cdk destroy -f",
+    "npm-clean": "npm cache clean --force",
+    "uninstall-tgz": "npm uninstall integration-huron-person",
+    "install-tgz": "npm install --force integration-huron-person https://simple-npm-package-bucket.s3.us-east-1.amazonaws.com/integration-huron-person-1.0.0.tgz",
+    "reinstall-tgz": "npm run uninstall-tgz && npm run install-tgz",
+    "reinstall-tgz-clean": "npm run npm-clean && npm run uninstall-tgz && npm run install-tgz"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.145",
@@ -41,7 +46,7 @@
     "aws-cdk-lib": "2.235.1",
     "constructs": "^10.0.0",
     "express": "^4.19.2",
-    "integration-huron-person": "file:../integration-huron-person/integration-huron-person-1.0.0.tgz",
+    "integration-huron-person": "https://simple-npm-package-bucket.s3.us-east-1.amazonaws.com/integration-huron-person-1.0.0.tgz",
     "mustache": "^4.2.0",
     "shibboleth-sp-at-edge": "file:../../../wp_to_cloud/bu-lambda-shibboleth/shibboleth-sp-at-edge-1.0.0.tgz"
   },
