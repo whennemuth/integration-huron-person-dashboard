@@ -1,5 +1,5 @@
 import { GetSecretValueCommand, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
-import { BasicCache, Cache, Config } from "integration-huron-person";
+import { BasicCache, Cache, Config, InMemoryCache} from "integration-huron-person";
 
 /** 
  * If process.env[CACHE_JSON] is set, the value of the secret has somehow been set as JSON - no 
@@ -28,7 +28,7 @@ export class DashboardCache {
   private initialized: boolean = false;
 
   constructor() { 
-    this.cache = BasicCache.getInstance();
+    this.cache = BasicCache.getInstance() ?? new InMemoryCache(); // Fallback to in-memory cache if BasicCache is not available
   }
 
   private async initialize(): Promise<void> {

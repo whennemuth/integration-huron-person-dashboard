@@ -12,7 +12,7 @@ export class PersonSync implements PersonSyncService {
   constructor(private config: Config) {  }
 
   private getSyncInstance = async (personId: string, hrn?: string): Promise<SinglePersonSync> => {
-    const { config } = this;
+    const { config, config: { preLoadedMaps: { orgMap = false, stateMap = true, countryMap = true } = {} } = {} } = this;
 
     if (config.dataSource.person) {
       // Remove fieldsOfInterest from config before passing to service, as it will interfere with 
@@ -22,7 +22,7 @@ export class PersonSync implements PersonSyncService {
     
     // Use cached data mapper if available, otherwise create and cache it
     if (!PersonSync.cachedDataMapper) {
-      PersonSync.cachedDataMapper = await getDataMapper(config);
+      PersonSync.cachedDataMapper = await getDataMapper(config, { orgMap, stateMap, countryMap });
     }
     const dataMapper = PersonSync.cachedDataMapper;
     

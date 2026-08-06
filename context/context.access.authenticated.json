@@ -1,5 +1,5 @@
 {
-  "STACK_ID": "kuali-to-huron-person-integration-dashboard",
+  "STACK_ID": "hp-dashboard",
   "ACCOUNT": "770203350335",
   "REGION": "us-east-2",
   "AUTHENTICATION_MODE": "authenticated",
@@ -35,31 +35,28 @@
     "dataSource": {
       "person": {
         "endpointConfig": {
-          "baseUrl": "https://prod-budev-fm.snaplogic.io",
+          "baseUrl": "https://prod-buprod-cloudultra-fm.snaplogic.io",
           "apiKey": "your-api-key-here",
           "timeout": 300000
         },
-        "fetchPath": "/api/1/rest/feed-master/queue/BUDev/Admin-Integration-Services/CommonServiceWrappers/huronIRBPerson",
-        "fieldsOfInterest": [
-          "personid",
-          "personBasic.names[*].firstName",
-          "personBasic.names[*].lastName",
-          "personBasic.names[*].middleName"
-        ]
+        "fetchPath": "/api/1/rest/feed-master/queue/BUProd/Admin-Integration-Services/CommonServiceWrappers/huronIRBPerson"
+      },
+      "_people": {
+        "bucketName": "huron-person-file-drop-dev",
+        "key": "20260303111609986/chunk-0011.ndjson",
+        "region": "us-east-2"
       },
       "people": {
         "endpointConfig": {
-          "baseUrl": "https://prod-budev-fm.snaplogic.io",
+          "baseUrl": "https://prod-buprod-fm.snaplogic.io",
           "apiKey": "your-api-key-here",
           "timeout": 7200000
         },
-        "fetchPath": "/api/1/rest/feed/run/task/BUDev/Admin-Integration-Services/GenericGets/huronIRBPersonByPopulation",
-        "fieldsOfInterest": [
-          "personid",
-          "personBasic.names[*].firstName",
-          "personBasic.names[*].lastName",
-          "personBasic.names[*].middleName"
-        ]
+        "fetchPath": "/api/1/rest/feed/run/task/BUProd/Admin-Integration-Services/GenericGets/huronIRBgetPersonByPopulation",
+        "fetchSchedule": {
+          "enabled": false,
+          "cronExpression": "cron(0 2 * * ? *)"
+        }
       },
       "terms": {
         "endpointConfig": {
@@ -68,7 +65,9 @@
           "timeout": 300000
         },
         "fetchPath": "/api/1/rest/feed/run/task/BUProd/Admin-Integration-Services/GenericGets/getCurrentTermFromCS"
-      }
+      },
+      "idpName": "bu-sso",
+      "idpDomain": "bu.edu"
     },
     "dataTarget": {
       "endpointConfig": {
@@ -80,18 +79,28 @@
         "timeout": 30000
       },
       "personsPath": "/api/v2/persons",
-      "organizationsPath": "/api/v2/organizations"
+      "organizationsPath": "/api/v2/organizations",
+      "personDeleteType": "soft"
     },
+    "cache": {
+      "enabled": true
+    },
+    "preLoadedMaps": {
+      "orgMap": false,
+      "stateMap": true,
+      "countryMap": true
+    },
+    "integratedDeltaClientId": "delta-storage",
     "integration": {
       "clientId": "huron-person-integration",
-      "batchSize": 100,
+      "batchSize": 200,
       "timeout": 30000
     },
     "storage": {
       "type": "s3",
       "config": {
-        "bucketName": "your-bucket-name-here",
-        "keyPrefix": "optional/key/prefix",
+        "_bucketName": "huron-person-file-drop-dev",
+        "bucketName": "huron-person-chunks-staging",
         "region": "us-east-2"
       }
     }    
