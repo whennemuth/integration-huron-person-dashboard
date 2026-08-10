@@ -9,19 +9,19 @@
             "source": "SAP",
             "nameType": "PRI",
             "displayName": "",
-            "firstName": "Warren",
+            "firstName": "Bugs",
             "middleName": "",
-            "lastName": "Hennemuth",
-            "fullName": "Hennemuth, Warren",
+            "lastName": "Bunny",
+            "fullName": "Bunny, Bugs",
             "prefix": "",
             "suffix": "",
             "effectiveDate": "20251020"
           },
           {
             "nameType": "PRF",
-            "firstName": "Warren",
+            "firstName": "Bugs",
             "middleName": "",
-            "lastName": "Hennemuth",
+            "lastName": "Bunny",
             "suffix": "",
             "prefix": "",
             "effectiveDate": "20240104",
@@ -29,9 +29,9 @@
           },
           {
             "nameType": "PRI",
-            "firstName": "Warren",
+            "firstName": "Bugs",
             "middleName": "",
-            "lastName": "Hennemuth",
+            "lastName": "Bunny",
             "suffix": "",
             "prefix": "",
             "effectiveDate": "20240104",
@@ -71,11 +71,11 @@
         ],
         "account": [
           {
-            "name": "WRH",
+            "name": "BBUNNY",
             "source": "SAP"
           },
           {
-            "name": "TST_wrh",
+            "name": "TST_bbunny",
             "source": "Campus Solutions"
           }
         ],
@@ -106,10 +106,10 @@
         ],
         "emergencyContact": [
           {
-            "name": "Angela Hennemuth",
+            "name": "Lola Bunny",
             "phone": {
               "type": "primary",
-              "number": "7742122550"
+              "number": "5555551234"
             }
           }
         ],
@@ -141,23 +141,23 @@
       "email": [
         {
           "type": "university",
-          "address": "wrh@bu.edu",
+          "address": "bbunny@bu.edu",
           "source": "SAP"
         },
         {
           "type": "personal",
-          "address": "warhen@comcast.net",
+          "address": "bugs.bunny@example.com",
           "source": "SAP"
         },
         {
           "type": "BUEM",
-          "address": "TST_wrh@bu.edu",
+          "address": "TST_bbunny@bu.edu",
           "source": "Campus Solutions",
           "isPreferred": "Y"
         },
         {
           "type": "PERS",
-          "address": "TST_warhen@comcast.net",
+          "address": "TST_bugs.bunny@example.com",
           "source": "Campus Solutions",
           "isPreferred": "N"
         }
@@ -165,14 +165,14 @@
       "phone": [
         {
           "type": "EMRGNCY",
-          "number": "7742122550",
+          "number": "5555551234",
           "isCell": "N",
           "source": "SAP"
         },
         {
           "type": "WORK",
           "countryCode": "",
-          "number": "6173532780",
+          "number": "6175551000",
           "source": "Campus Solutions",
           "isPreferred": "Y"
         }
@@ -191,10 +191,10 @@
         "address": [
           {
             "type": "home",
-            "street": "195 Independence Ave., #145",
-            "city": "Quincy",
+            "street": "123 Cartoon Lane, Apt 42",
+            "city": "Springfield",
             "state": "MA",
-            "postalCode": "02169",
+            "postalCode": "01101",
             "country": "US"
           }
         ],
@@ -277,7 +277,7 @@
                 "actionEntryDate": "20180216",
                 "hirerEmail": {
                   "type": "university",
-                  "address": "WRH@BU.EDU"
+                  "address": "BBUNNY@BU.EDU"
                 }
               },
               "I9": {
@@ -311,7 +311,7 @@
                   },
                   "workPhone": {
                     "type": "office",
-                    "number": "6173532780",
+                    "number": "6175551000",
                     "source": "SAP"
                   }
                 }
@@ -400,13 +400,13 @@
   ],
   "targetData": [
     {
-      "id": "wrh-bu",
+      "id": "bbunny-bu",
       "honorific": "",
-      "firstName": "Warren",
-      "lastName": "Hennemuth",
+      "firstName": "Bugs",
+      "lastName": "Bunny",
       "middleName": "",
       "title": "",
-      "userId": "bu-sso_wrh@bu.edu",
+      "userId": "bu-sso_bbunny@bu.edu",
       "ORCID": "",
       "employer": {
         "hrn": "hrn:hrs:orgs:1",
@@ -423,7 +423,7 @@
       "sourceIdentifier": "U21967744",
       "contactInformation": {
         "city": "",
-        "email": "wrh@bu.edu",
+        "email": "bbunny@bu.edu",
         "phone": "",
         "country": {
           "hrn": "hrn:hrs:lists:countries/usa",
