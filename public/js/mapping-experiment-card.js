@@ -146,7 +146,7 @@ class MappingExperimentCard {
         pre.className = 'bg-light p-3 rounded';
         pre.style.maxHeight = '500px';
         pre.style.overflowY = 'auto';
-        pre.textContent = JSON.stringify(data, null, 2);
+        pre.textContent = JSON.stringify(data.data, null, 2);
         
         cardBody.appendChild(pre);
         card.appendChild(cardHeader);

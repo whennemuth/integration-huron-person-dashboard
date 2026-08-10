@@ -2,6 +2,11 @@
  * PersonCard - DOM-based person lookup results rendering
  * Replaces innerHTML string concatenation with proper DOM manipulation
  */
+
+// Global cache for raw JSON data (accessible for debugging/clipboard operations)
+window.cachedSourceData = null;
+window.cachedTargetData = null;
+
 class PersonCard {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
@@ -56,8 +61,26 @@ class PersonCard {
         const hasTargetData = this.currentData.targetData && Array.isArray(this.currentData.targetData) && this.currentData.targetData.length > 0;
         
         if (!hasSourceData && !hasTargetData) {
+            // Clear global cache when no data
+            window.cachedSourceData = null;
+            window.cachedTargetData = null;
             this.renderNotFound();
             return;
+        }
+        
+        // Update global cache with current data (extract first element if array)
+        if (hasSourceData) {
+            const sourceData = this.currentData.sourceData;
+            window.cachedSourceData = Array.isArray(sourceData) && sourceData.length > 0 ? sourceData[0] : sourceData;
+        } else {
+            window.cachedSourceData = null;
+        }
+        
+        if (hasTargetData) {
+            const targetData = this.currentData.targetData;
+            window.cachedTargetData = Array.isArray(targetData) && targetData.length > 0 ? targetData[0] : targetData;
+        } else {
+            window.cachedTargetData = null;
         }
         
         this.renderResults(this.currentData, hasSourceData, hasTargetData);
@@ -67,6 +90,10 @@ class PersonCard {
      * Render "not found" message
      */
     renderNotFound() {
+        // Clear global cache
+        window.cachedSourceData = null;
+        window.cachedTargetData = null;
+        
         const alert = document.createElement('div');
         alert.className = 'alert alert-warning';
         
@@ -85,6 +112,10 @@ class PersonCard {
     renderWaiting() {
         this.container.innerHTML = '';
         
+        // Clear global cache while waiting
+        window.cachedSourceData = null;
+        window.cachedTargetData = null;
+        
         const alert = document.createElement('div');
         alert.className = 'alert alert-info';
         
@@ -102,6 +133,10 @@ class PersonCard {
      */
     renderError(message = 'Error looking up person') {
         this.container.innerHTML = '';
+        
+        // Clear global cache on error
+        window.cachedSourceData = null;
+        window.cachedTargetData = null;
         
         const alert = document.createElement('div');
         alert.className = 'alert alert-danger';
@@ -178,13 +213,27 @@ class PersonCard {
         
         // Header
         const header = document.createElement('strong');
-        header.className = 'text-success';
+        header.className = 'text-success d-flex align-items-center';
         
         const icon = document.createElement('i');
         icon.className = 'fas fa-check-circle me-1';
         
         header.appendChild(icon);
         header.appendChild(document.createTextNode('Source Data Found:'));
+        header.style.marginBottom = '0.5rem';
+        
+        // Add copy button
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'btn btn-sm btn-outline-warning ms-2';
+        copyBtn.style.padding = '0.15rem 0.5rem';
+        copyBtn.style.fontSize = '0.75rem';
+        copyBtn.style.backgroundColor = '#f8f5e0';
+        copyBtn.style.borderColor = '#d4a843';
+        copyBtn.style.color = '#856404';
+        copyBtn.title = 'Copy source JSON to clipboard';
+        copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy to clipboard';
+        copyBtn.onclick = () => this.copyToClipboard(window.cachedSourceData, 'source');
+        header.appendChild(copyBtn);
         
         // Data list
         const list = this.createSourceDataList(sourceDataArray);
@@ -208,16 +257,31 @@ class PersonCard {
         box.style.overflowX = 'auto';
         box.style.overflowY = 'auto';
         box.style.whiteSpace = 'nowrap';
+        box.style.marginBottom = '0.5rem';
         
         // Header
         const header = document.createElement('strong');
-        header.className = 'text-success';
+        header.className = 'text-success d-flex align-items-center';
         
         const icon = document.createElement('i');
         icon.className = 'fas fa-check-circle me-1';
         
         header.appendChild(icon);
         header.appendChild(document.createTextNode('Target Data Found:'));
+        header.style.marginBottom = '0.5rem';
+        
+        // Add copy button
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'btn btn-sm btn-outline-warning ms-2';
+        copyBtn.style.padding = '0.15rem 0.5rem';
+        copyBtn.style.fontSize = '0.75rem';
+        copyBtn.style.backgroundColor = '#f8f5e0';
+        copyBtn.style.borderColor = '#d4a843';
+        copyBtn.style.color = '#856404';
+        copyBtn.title = 'Copy target JSON to clipboard';
+        copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy to clipboard';
+        copyBtn.onclick = () => this.copyToClipboard(window.cachedTargetData, 'target');
+        header.appendChild(copyBtn);
         
         // Data list
         const list = this.createTargetDataList(targetDataArray);
@@ -227,6 +291,28 @@ class PersonCard {
         col.appendChild(box);
         
         return col;
+    }
+
+    /**
+     * Copy JSON data to clipboard
+     */
+    async copyToClipboard(data, type) {
+        try {
+            const jsonString = JSON.stringify(data, null, 2);
+            await navigator.clipboard.writeText(jsonString);
+            
+            // Show temporary success message
+            const toast = document.createElement('div');
+            toast.className = 'position-fixed top-0 end-0 m-3 alert alert-success';
+            toast.style.zIndex = '9999';
+            toast.innerHTML = `<i class="fas fa-check-circle me-2"></i>${type.charAt(0).toUpperCase() + type.slice(1)} JSON copied to clipboard!`;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => toast.remove(), 2000);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+            alert('Failed to copy to clipboard');
+        }
     }
 
     /**
@@ -676,6 +762,10 @@ class PersonCard {
             loading.remove();
 
             if (response.ok && result.sourceData && result.sourceData.length > 0) {
+                // Update global cache with the newly retrieved source data (extract first element if array)
+                const sourceData = result.sourceData;
+                window.cachedSourceData = Array.isArray(sourceData) && sourceData.length > 0 ? sourceData[0] : sourceData;
+                
                 // Find and update the existing source column
                 const row = this.container.querySelector('.person-result .row');
                 if (row) {
